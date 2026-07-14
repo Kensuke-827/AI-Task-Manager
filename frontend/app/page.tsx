@@ -89,15 +89,32 @@ export default function Home() {
           className="mb-8 space-y-4 rounded-lg bg-white p-6 shadow"
         >
           <h2 className="text-xl font-semibold">タスク追加</h2>
+          <p className="rounded bg-blue-50 p-3 text-sm text-blue-700">
+            締切・予想作業時間・重要度をもとに、AIが優先順位を自動で計算します。
+          </p>
+          <div>
+            <label className="mb-1 block font-medium">予想作業時間</label>
 
-          <input
-            className="w-full rounded border p-2"
-            type="text"
-            placeholder="タイトル"
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            required
-          />
+            <p className="mb-2 text-sm text-gray-500">
+              このタスクを完了するまでに必要だと思う時間を入力してください。
+              （例：30分なら0.5、2時間なら2）
+            </p>
+
+            <div className="flex items-center gap-2">
+              <input
+                className="w-full rounded border p-2"
+                type="number"
+                min="0"
+                step="0.5"
+                value={estimatedHours}
+                onChange={(event) =>
+                  setEstimatedHours(Number(event.target.value))
+                }
+                required
+              />
+              <span>時間</span>
+            </div>
+          </div>
 
           <textarea
             className="w-full rounded border p-2"
@@ -124,17 +141,25 @@ export default function Home() {
             required
           />
 
-          <select
-            className="w-full rounded border p-2"
-            value={importance}
-            onChange={(event) => setImportance(Number(event.target.value))}
-          >
-            <option value={1}>重要度 1</option>
-            <option value={2}>重要度 2</option>
-            <option value={3}>重要度 3</option>
-            <option value={4}>重要度 4</option>
-            <option value={5}>重要度 5</option>
-          </select>
+          <div>
+            <label className="mb-1 block font-medium">重要度</label>
+
+            <p className="mb-2 text-sm text-gray-500">
+              タスクの重要さを選択してください。
+            </p>
+
+            <select
+              className="w-full rounded border p-2"
+              value={importance}
+              onChange={(event) => setImportance(Number(event.target.value))}
+            >
+              <option value={1}>1：低い（後回しでも問題ない）</option>
+              <option value={2}>2：やや低い</option>
+              <option value={3}>3：普通</option>
+              <option value={4}>4：高い（早めに終わらせたい）</option>
+              <option value={5}>5：非常に高い（最優先）</option>
+            </select>
+          </div>
 
           <button
             className="rounded bg-black px-4 py-2 text-white"
