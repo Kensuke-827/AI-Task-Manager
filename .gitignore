@@ -1,0 +1,29 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual Environment
+venv/
+.venv/
+
+# Environment Variables
+.env
+
+# =========================
+# VSCode
+# =========================
+.vscode/
+
+# =========================
+# Next.js
+# =========================
+frontend/.next/
+frontend/node_modules/
+
+# =========================
+# macOS
+# =========================
+.DS_Store
