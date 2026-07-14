@@ -1,14 +1,18 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 def calculate_priority(task):
     score = 0
 
-    # 重要度
     score += task.importance * 10
 
-    # 締切
-    days_left = (task.deadline - datetime.now()).days
+    now = datetime.now(timezone.utc)
+    deadline = task.deadline
+
+    if deadline.tzinfo is None:
+        deadline = deadline.replace(tzinfo=timezone.utc)
+
+    days_left = (deadline - now).days
 
     if days_left <= 1:
         score += 40
@@ -17,7 +21,6 @@ def calculate_priority(task):
     elif days_left <= 7:
         score += 10
 
-    # 作業時間
     if task.estimated_hours >= 5:
         score += 10
 
