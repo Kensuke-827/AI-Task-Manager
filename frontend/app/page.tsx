@@ -23,6 +23,7 @@ export default function Home() {
   const [estimatedHours, setEstimatedHours] = useState(1);
   const [importance, setImportance] = useState(3);
   const [error, setError] = useState("");
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
 
   const fetchTasks = async () => {
     try {
@@ -39,59 +40,142 @@ export default function Home() {
       setError(err instanceof Error ? err.message : "エラーが発生しました");
     }
   };
+  const deleteTask = async (id: number) => {
+    try {
+      const response = await fetch(`${API_URL}${id}`, {
+        method: "DELETE",
+      });
 
+      if (!response.ok) {
+        throw new Error("タスクの削除に失敗しました");
+      }
+
+      await fetchTasks();
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "エラーが発生しました");
+    }
+  };
   useEffect(() => {
     fetchTasks();
   }, []);
+  const getPriorityStyle = (priority: number) => {
+    if (priority >= 80) {
+      return "bg-red-100 text-red-700";
+    }
+
+    if (priority >= 50) {
+      return "bg-yellow-100 text-yellow-700";
+    }
+
+    return "bg-green-100 text-green-700";
+  };
+  const startEdit = (task: Task) => {
+    setEditingTaskId(task.id);
+    setTitle(task.title);
+    setDescription(task.description ?? "");
+    setDeadline(task.deadline.slice(0, 16));
+    setEstimatedHours(task.estimated_hours);
+    setImportance(task.importance);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     try {
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      setError("");
+
+      const isEditing = editingTaskId !== null;
+
+      const response = await fetch(
+        isEditing ? `${API_URL}${editingTaskId}` : API_URL,
+        {
+          method: isEditing ? "PUT" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            title,
+            description,
+            deadline: new Date(deadline).toISOString(),
+            estimated_hours: estimatedHours,
+            importance,
+          }),
         },
-        body: JSON.stringify({
-          title,
-          description,
-          deadline: new Date(deadline).toISOString(),
-          estimated_hours: estimatedHours,
-          importance,
-        }),
-      });
+      );
 
       if (!response.ok) {
-        throw new Error("タスクの追加に失敗しました");
+        throw new Error(
+          isEditing
+            ? "タスクの更新に失敗しました"
+            : "タスクの追加に失敗しました",
+        );
       }
+
+      await fetchTasks();
 
       setTitle("");
       setDescription("");
       setDeadline("");
       setEstimatedHours(1);
       setImportance(3);
-      setError("");
-
-      await fetchTasks();
+      setEditingTaskId(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "エラーが発生しました");
     }
   };
 
   return (
-    <main className="min-h-screen bg-gray-100 p-6">
-      <div className="mx-auto max-w-3xl">
+    <main className="min-h-screen bg-slate-100 px-4 py-10">
+      <div className="mx-auto max-w-4xl">
         <h1 className="mb-6 text-3xl font-bold">AI Task Manager</h1>
 
         <form
           onSubmit={handleSubmit}
           className="mb-8 space-y-4 rounded-lg bg-white p-6 shadow"
         >
-          <h2 className="text-xl font-semibold">タスク追加</h2>
-          <p className="rounded bg-blue-50 p-3 text-sm text-blue-700">
-            締切・予想作業時間・重要度をもとに、AIが優先順位を自動で計算します。
-          </p>
+          <h2 className="text-xl font-semibold">
+            {editingTaskId !== null ? "タスク編集" : "タスク追加"}
+          </h2>
+
+          <div>
+            <label className="mb-1 block font-medium">タイトル</label>
+            <input
+              className="w-full rounded border p-2"
+              type="text"
+              placeholder="例：レポート課題"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block font-medium">説明</label>
+            <textarea
+              className="w-full rounded border p-2"
+              placeholder="タスクの内容を入力してください"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block font-medium">締切</label>
+            <input
+              className="w-full rounded border p-2"
+              type="datetime-local"
+              value={deadline}
+              onChange={(event) => setDeadline(event.target.value)}
+              required
+            />
+          </div>
+
           <div>
             <label className="mb-1 block font-medium">予想作業時間</label>
 
@@ -112,34 +196,9 @@ export default function Home() {
                 }
                 required
               />
-              <span>時間</span>
+              <span className="whitespace-nowrap">時間</span>
             </div>
           </div>
-
-          <textarea
-            className="w-full rounded border p-2"
-            placeholder="説明"
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-          />
-
-          <input
-            className="w-full rounded border p-2"
-            type="datetime-local"
-            value={deadline}
-            onChange={(event) => setDeadline(event.target.value)}
-            required
-          />
-
-          <input
-            className="w-full rounded border p-2"
-            type="number"
-            min="0"
-            step="0.5"
-            value={estimatedHours}
-            onChange={(event) => setEstimatedHours(Number(event.target.value))}
-            required
-          />
 
           <div>
             <label className="mb-1 block font-medium">重要度</label>
@@ -165,8 +224,24 @@ export default function Home() {
             className="rounded bg-black px-4 py-2 text-white"
             type="submit"
           >
-            追加
+            {editingTaskId !== null ? "更新する" : "追加する"}
           </button>
+          {editingTaskId !== null && (
+            <button
+              type="button"
+              className="ml-2 rounded bg-gray-300 px-4 py-2 text-gray-800"
+              onClick={() => {
+                setEditingTaskId(null);
+                setTitle("");
+                setDescription("");
+                setDeadline("");
+                setEstimatedHours(1);
+                setImportance(3);
+              }}
+            >
+              キャンセル
+            </button>
+          )}
         </form>
 
         {error && (
@@ -175,27 +250,82 @@ export default function Home() {
 
         <section>
           <h2 className="mb-4 text-xl font-semibold">タスク一覧</h2>
-
           <div className="space-y-4">
-            {tasks.map((task) => (
-              <article key={task.id} className="rounded-lg bg-white p-5 shadow">
-                <h3 className="text-lg font-bold">{task.title}</h3>
+            {tasks.length === 0 && (
+              <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center text-gray-500">
+                まだタスクがありません。上のフォームから追加してください。
+              </div>
+            )}
 
-                <p className="mt-2 text-gray-600">
-                  {task.description || "説明なし"}
-                </p>
+            {[...tasks]
+              .sort((a, b) => b.ai_priority - a.ai_priority)
+              .map((task) => (
+                <article
+                  key={task.id}
+                  className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <h3 className="text-lg font-bold text-gray-900">
+                      {task.title}
+                    </h3>
 
-                <div className="mt-3 text-sm">
-                  <p>
-                    締切：
-                    {new Date(task.deadline).toLocaleString("ja-JP")}
+                    <span
+                      className={`inline-flex rounded-full px-3 py-1 text-sm font-bold ${getPriorityStyle(
+                        task.ai_priority,
+                      )}`}
+                    >
+                      AI優先度：{task.ai_priority}
+                    </span>
+                  </div>
+
+                  <p className="mt-3 text-gray-600">
+                    {task.description || "説明なし"}
                   </p>
-                  <p>重要度：{task.importance}</p>
-                  <p>予想作業時間：{task.estimated_hours}時間</p>
-                  <p className="font-bold">AI優先度：{task.ai_priority}</p>
-                </div>
-              </article>
-            ))}
+
+                  <div className="mt-4 grid gap-2 text-sm text-gray-700 sm:grid-cols-3">
+                    <p>
+                      <span className="font-medium">締切：</span>
+                      {new Date(task.deadline).toLocaleString("ja-JP")}
+                    </p>
+
+                    <p>
+                      <span className="font-medium">重要度：</span>
+                      {task.importance}
+                    </p>
+
+                    <p>
+                      <span className="font-medium">予想時間：</span>
+                      {task.estimated_hours}時間
+                    </p>
+                  </div>
+
+                  <div className="mt-5 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => startEdit(task)}
+                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                    >
+                      編集
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const confirmed = window.confirm(
+                          `「${task.title}」を削除しますか？`,
+                        );
+
+                        if (confirmed) {
+                          deleteTask(task.id);
+                        }
+                      }}
+                      className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+                    >
+                      削除
+                    </button>
+                  </div>
+                </article>
+              ))}
           </div>
         </section>
       </div>
