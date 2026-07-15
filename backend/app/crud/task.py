@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from app.models.task import Task
 from app.schemas.task import TaskCreate
+from app.services.priority import calculate_priority
 
 
 def get_tasks(db: Session):
@@ -51,4 +52,3 @@ def delete_task(db: Session, task_id: int):
     db.commit()
 
     return existing_task
-from app.services.priority import calculate_priority

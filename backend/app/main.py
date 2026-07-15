@@ -2,8 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
-from app.models import task, event
+from app.models import task, event, user
 from app.api.task import router as task_router
+from app.api.auth import router as auth_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -22,7 +23,8 @@ app.add_middleware(
 )
 
 app.include_router(task_router)
-
+app.include_router(auth_router)
+app.include_router(task_router)
 
 @app.get("/")
 def root():
