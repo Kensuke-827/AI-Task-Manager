@@ -59,6 +59,28 @@ export default function Home() {
   useEffect(() => {
     fetchTasks();
   }, []);
+  const parseDeadline = (value: string) => {
+    // タイムゾーン情報がなければ、DBに保存されたUTC日時として扱う
+    const hasTimezone = value.endsWith("Z") || /[+-]\d{2}:\d{2}$/.test(value);
+
+    return new Date(hasTimezone ? value : `${value}Z`);
+  };
+
+  const formatDeadline = (value: string) => {
+    return parseDeadline(value).toLocaleString("ja-JP");
+  };
+
+  const formatDeadlineForInput = (value: string) => {
+    const date = parseDeadline(value);
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
   const getPriorityStyle = (priority: number) => {
     if (priority >= 80) {
       return "bg-red-100 text-red-700";
@@ -74,7 +96,7 @@ export default function Home() {
     setEditingTaskId(task.id);
     setTitle(task.title);
     setDescription(task.description ?? "");
-    setDeadline(task.deadline.slice(0, 16));
+    setDeadline(formatDeadlineForInput(task.deadline));
     setEstimatedHours(task.estimated_hours);
     setImportance(task.importance);
 
@@ -285,7 +307,7 @@ export default function Home() {
                   <div className="mt-4 grid gap-2 text-sm text-gray-700 sm:grid-cols-3">
                     <p>
                       <span className="font-medium">締切：</span>
-                      {new Date(task.deadline).toLocaleString("ja-JP")}
+                      {formatDeadline(task.deadline)}
                     </p>
 
                     <p>
